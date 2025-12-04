@@ -106,7 +106,7 @@ void GLCanvas::initializeGL()
   QOpenGLFunctions *f = QOpenGLContext::currentContext()->functions();
   f->glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
-  //if( win->prepareShaders() ) { SHADER_PROGRAM->bind(); } else {QMetaObject::invokeMethod(app, "quit", Qt::QueuedConnection);}
+  if( win->prepareShaders() ) { SHADER_PROGRAM->bind(); } else {QMetaObject::invokeMethod(app, "quit", Qt::QueuedConnection);}
 }
 
 void GLCanvas::paintGL()
