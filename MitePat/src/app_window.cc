@@ -9,6 +9,12 @@ AppWindow::AppWindow()
 { 
   setWindowTitle("MitePattern");
   canvas = new GLCanvas(this);
+
+  // QSurfaceFormat format;
+  // format.setVersion(3, 3); // Set your desired OpenGL version
+  // format.setProfile(QSurfaceFormat::CoreProfile);
+  // format.setOption(QSurfaceFormat::DebugContext);
+  // canvas->setFormat(format);
   toolbars_init();
   docks_init();
 
@@ -69,67 +75,50 @@ void AppWindow::docks_init()
 }
 
 
-bool AppWindow::prepareShaders()
+bool GLCanvas::prepareShaders()
 {
   SHADER_PROGRAM = new QOpenGLShaderProgram(this);
   
-  if ( !SHADER_PROGRAM->addShaderFromSourceCode(QOpenGLShader::Vertex,MITED_SHADERS::vertex) )
-  {
-    std::cout << "Vertex compile:\n" << SHADER_PROGRAM->log().toStdString() << std::endl;
-    return false;
-  }
+  bool vertex_succ = SHADER_PROGRAM->addShaderFromSourceCode(QOpenGLShader::Vertex,MITED_SHADERS::vertex);
+  bool frag_succ = SHADER_PROGRAM->addShaderFromSourceCode(QOpenGLShader::Fragment,MITED_SHADERS::fragment);
+  return (vertex_succ && frag_succ) ? SHADER_PROGRAM->link() : false;
+}
 
-  if( !SHADER_PROGRAM->addShaderFromSourceCode(QOpenGLShader::Fragment,MITED_SHADERS::fragment))
-  {
-    qDebug() << "Fragment Shader Compilation Error:" << SHADER_PROGRAM->log();
-    return false;
-  }
-  std::cout << "Fragment compile:\n" << SHADER_PROGRAM->log().toStdString() << std::endl;
-
-  if(!SHADER_PROGRAM->link())
-  {
-    std::cout << "Linker: \n" << SHADER_PROGRAM->log().toStdString() << std::endl;
-    return false;
-  }
+void GLCanvas::prepareRect()
+{
   int SHADER_POSBUFFER = SHADER_PROGRAM->attributeLocation("pos");
+  SHADER_PROGRAM->enableAttributeArray(SHADER_POSBUFFER);
   SHADER_VIEWMAT = SHADER_PROGRAM->uniformLocation("VIEWMAT");
+  
   RECT_BUFFER = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
   RECT_BUFFER->setUsagePattern(QOpenGLBuffer::StaticDraw);
   RECT_BUFFER->create();
   RECT_BUFFER->bind();
-  
   GLfloat vertices[] = { 0.0f,0.0f,0.0f,1.0f,1.0f,1.0f,1.0f,1.0f,0.0f,0.1f,0.0f,0.0f };
   RECT_BUFFER->allocate(vertices, sizeof(vertices));
-  SHADER_PROGRAM->setAttributeBuffer(SHADER_POSBUFFER, GL_FLOAT, 0, 2, sizeof(GLfloat) * 2);
+  SHADER_PROGRAM->setAttributeBuffer(SHADER_POSBUFFER, GL_FLOAT, 0, 2);
+  RECT_BUFFER->release();
 
-  SHADER_PROGRAM->enableAttributeArray(SHADER_POSBUFFER);
-
-  return true;
 }
 void GLCanvas::initializeGL()
 {
-
-  AppWindow *win = ((AppWindow*)parentWidget());
+  makeCurrent();
   QCoreApplication *app = QApplication::instance();
-  // Set up the rendering context, load shaders and other resources, etc.:
-  QOpenGLFunctions *f = QOpenGLContext::currentContext()->functions();
-  f->glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-
-
-  if( win->prepareShaders() ) { SHADER_PROGRAM->bind(); } else {QMetaObject::invokeMethod(app, "quit", Qt::QueuedConnection);}
-  std::cout << MITED_SHADERS::fragment << std::endl;
-
+  glClearColor(0.1f, 0.1f, 0.2f, 1.0f);
+  std::cout << (prepareShaders() ? (SHADER_PROGRAM->bind() ? "Program bind: success" : "Program bind fail:\n" + SHADER_PROGRAM->log().toStdString() ) : "Shader compile fail:\n" + SHADER_PROGRAM->log().toStdString()) << std::endl;
+  if (!SHADER_PROGRAM->isLinked()) QMetaObject::invokeMethod(app, "quit", Qt::QueuedConnection);
+  prepareRect();
+  std::cout << (isValid() ? "QOpenglWidget: all ok" : "QOpenGlWidget: issues detected") << std::endl;
 }
 
 void GLCanvas::paintGL()
 {
   // Draw the scene
-  QOpenGLFunctions *f = QOpenGLContext::currentContext()->functions();
-  f->glClear(GL_COLOR_BUFFER_BIT);
-  f->glDrawArrays(GL_TRIANGLES,0,6);
-
-  std::cout << "SHADER_LOG:" << SHADER_PROGRAM->log().toStdString() << std::endl;
-  std::cout << "OpenGL log:" << f->glGetError() << std::endl;
+  SHADER_PROGRAM->bind();
+  RECT_BUFFER->bind();
+  glClear(GL_COLOR_BUFFER_BIT);
+  glDrawArrays(GL_TRIANGLES,0,6);
+  RECT_BUFFER->release();
 
 }
 

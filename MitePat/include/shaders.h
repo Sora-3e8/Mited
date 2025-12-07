@@ -8,13 +8,12 @@
 namespace MITED_SHADERS
 {
   static const char* vertex = R""""(
-#version 410
+#version 330 core
   
   uniform mat4 VIEWMAT;
 
 
   in vec2 pos;
-
 
   void main() 
   {
@@ -23,8 +22,7 @@ namespace MITED_SHADERS
   )"""";
 
   static const char* fragment = R""""(
-#version 410
-
+#version 330 core
 out vec4 colorOutput;
 
 void main()

@@ -8,7 +8,7 @@ set(SRC_DIR "src")
 set(SHADERS, "shaders")
 set(EXECUTABLE_OUTPUT_PATH "bin")
 
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets OpenGLWidgets)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets OpenGLWidgets OpenGL)
 
 include_directories(include lib)
 
@@ -17,4 +17,5 @@ target_compile_options(MitePat PRIVATE -Wall -Wextra -Wpedantic)
 target_link_libraries(MitePat PRIVATE Qt6::Core)
 target_link_libraries(MitePat PRIVATE Qt6::Widgets)
 target_link_libraries(MitePat PRIVATE Qt6::OpenGLWidgets)
+target_link_libraries(MitePat PRIVATE Qt6::OpenGL)
 target_link_libraries(MitePat PRIVATE Qt6::Gui)
