@@ -1,0 +1,6 @@
+   {
+        <QtCore>
+        Memcheck:Leak
+        ...
+        obj:/usr/lib/x86_64-linux-gnu/libQtCore.so.4.8.6
+    }
