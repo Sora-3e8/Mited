@@ -9,29 +9,17 @@ AppWindow::AppWindow()
 { 
   setWindowTitle("MitePattern");
   canvas = new GLCanvas(this);
-
-  // QSurfaceFormat format;
-  // format.setVersion(3, 3); // Set your desired OpenGL version
-  // format.setProfile(QSurfaceFormat::CoreProfile);
-  // format.setOption(QSurfaceFormat::DebugContext);
-  // canvas->setFormat(format);
   toolbars_init();
   docks_init();
-
   setCentralWidget(canvas);
 }
 
 AppWindow::~AppWindow()
 {
-  SHADER_PROGRAM->release();
+  canvas->SHADER_PROGRAM.release();
+  RECT_BUFFER->destroy();
   delete SHADER_PROGRAM;
-  delete RECT_BUFFER;
   delete canvas;
-}
-
-void AppWindow::closeApp()
-{
-  QApplication::quit();
 }
 
 void AppWindow:: toolbars_init()
@@ -74,66 +62,69 @@ void AppWindow::docks_init()
   addDockWidget(Qt::RightDockWidgetArea,tag_tooldock);
 }
 
-
-bool GLCanvas::prepareShaders()
-{
-  SHADER_PROGRAM = new QOpenGLShaderProgram(this);
-  
-  bool vertex_succ = SHADER_PROGRAM->addShaderFromSourceCode(QOpenGLShader::Vertex,MITED_SHADERS::vertex);
-  bool frag_succ = SHADER_PROGRAM->addShaderFromSourceCode(QOpenGLShader::Fragment,MITED_SHADERS::fragment);
-  return (vertex_succ && frag_succ) ? SHADER_PROGRAM->link() : false;
-}
-
 void GLCanvas::prepareRect()
 {
-  int SHADER_POSBUFFER = SHADER_PROGRAM->attributeLocation("pos");
-  SHADER_PROGRAM->enableAttributeArray(SHADER_POSBUFFER);
-  SHADER_VIEWMAT = SHADER_PROGRAM->uniformLocation("VIEWMAT");
+  int SHADER_POSBUFFER = SHADER_PROGRAM.attributeLocation("vertexBuffer");
+  SHADER_PROGRAM.enableAttributeArray(SHADER_POSBUFFER);
+  SHADER_VIEWMAT = SHADER_PROGRAM.uniformLocation("VIEWMAT");
   
   RECT_BUFFER = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
   RECT_BUFFER->setUsagePattern(QOpenGLBuffer::StaticDraw);
   RECT_BUFFER->create();
   RECT_BUFFER->bind();
-  GLfloat vertices[] = { 0.0f,0.0f,0.0f,1.0f,1.0f,1.0f,1.0f,1.0f,0.0f,0.1f,0.0f,0.0f };
+  GLfloat vertices[] = { 1.0f,1.0f,-1.0f,1.0f,-1.0f,-1.0f,-1.0f,-1.0f,1.0f,-1.0f,1.0f,1.0f };
   RECT_BUFFER->allocate(vertices, sizeof(vertices));
-  SHADER_PROGRAM->setAttributeBuffer(SHADER_POSBUFFER, GL_FLOAT, 0, 2);
-  RECT_BUFFER->release();
+  SHADER_PROGRAM.setAttributeBuffer(0, GL_FLOAT, 0, 2,0);
+  std::cout << "Attribute code:" << glGetError() << std::endl;
 
+  RECT_BUFFER->release();
 }
+
+bool GLCanvas::prepareShaders()
+{
+  SHADER_PROGRAM.create();
+  bool vertex_succ = SHADER_PROGRAM.addShaderFromSourceCode(QOpenGLShader::Vertex,MITED_SHADERS::Vertex);
+  bool frag_succ = SHADER_PROGRAM.addShaderFromSourceCode(QOpenGLShader::Fragment,MITED_SHADERS::Fragment);
+  return (vertex_succ && frag_succ) ? SHADER_PROGRAM.link() : false;
+}
+
 void GLCanvas::initializeGL()
 {
-  makeCurrent();
+  initializeOpenGLFunctions();
+  QOpenGLContext *ctx = context();
+  std::cout << "Version:" <<ctx->format().majorVersion() << "." << ctx->format().minorVersion() << std::endl;
   QCoreApplication *app = QApplication::instance();
   glClearColor(0.1f, 0.1f, 0.2f, 1.0f);
-  std::cout << (prepareShaders() ? (SHADER_PROGRAM->bind() ? "Program bind: success" : "Program bind fail:\n" + SHADER_PROGRAM->log().toStdString() ) : "Shader compile fail:\n" + SHADER_PROGRAM->log().toStdString()) << std::endl;
-  if (!SHADER_PROGRAM->isLinked()) QMetaObject::invokeMethod(app, "quit", Qt::QueuedConnection);
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  std::cout << (prepareShaders() ? (SHADER_PROGRAM.bind() ? "Program bind: success" : "Program bind fail:\n" + SHADER_PROGRAM.log().toStdString() ) : "Shader compile fail:\n" + SHADER_PROGRAM.log().toStdString()) << std::endl;
+  if (!SHADER_PROGRAM.isLinked()) QMetaObject::invokeMethod(app, "quit", Qt::QueuedConnection);
   prepareRect();
   std::cout << (isValid() ? "QOpenglWidget: all ok" : "QOpenGlWidget: issues detected") << std::endl;
+  std::cout << "Version:" << format().majorVersion() << "." << format().minorVersion() << std::endl;
 }
 
 void GLCanvas::paintGL()
 {
   // Draw the scene
-  SHADER_PROGRAM->bind();
   RECT_BUFFER->bind();
   glClear(GL_COLOR_BUFFER_BIT);
-  glDrawArrays(GL_TRIANGLES,0,6);
+  std::cout << "Clear code:" << glGetError() << std::endl;
+  glDrawArrays(GL_TRIANGLES,0,sizeof(float)*6);
+  std::cout << "Draw arrays code:" << glGetError() << std::endl;
   RECT_BUFFER->release();
-
 }
 
 void GLCanvas::resizeGL(int w, int h)
 {
-  QOpenGLFunctions *f = QOpenGLContext::currentContext()->functions();
   float aspect = (float)w/(float)h;
-  std::cout << "Aspect ratio:" << aspect << std::endl;
+
   //glViewport(0,0,w,h);
   QMatrix4x4 size_mat(1.0f/aspect,0.0f,0.0f,0.0f,
       0.0f,1.0f,0.0f,0.0f,
       0.0f,0.0f,1.0f,0.0f,
       0.0f,0.0f,0.0f,1.0f);
   //SHADER_PROGRAM->setUniformValue(SHADER_VIEWMAT, size_mat.transposed());
-  update();
 }
 
 

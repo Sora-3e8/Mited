@@ -7,21 +7,24 @@
 #include <QDockWidget>
 #include <QBoxLayout>
 #include <QToolBar>
+#include <QOpenGLShader>
 #include <QOpenGLShaderProgram>
 #include <QOpenGLBuffer>
 #include <iostream>
 #include <QApplication>
 #include <QMatrix4x4>
 #include <QSurfaceFormat>
+#include <QOpenGLFunctions>
+#include <QOpenGLVertexArrayObject>
+#include <QList>
 #include <QDebug>
 
-class GLCanvas : public QOpenGLWidget 
+class GLCanvas : public QOpenGLWidget, protected QOpenGLFunctions 
 {
 
   public:
-    GLCanvas(QWidget *parent) : QOpenGLWidget(parent){
-
-    };
+    GLCanvas(QWidget *parent) : QOpenGLWidget(parent){};
+    QOpenGLShaderProgram SHADER_PROGRAM;
 
   protected:
     void initializeGL() override;
@@ -37,12 +40,10 @@ class AppWindow : public QMainWindow {
       AppWindow();
       ~AppWindow() override;
       GLCanvas *canvas;
-      bool prepareShaders();
-      void closeApp();
+
   private:
       void toolbars_init();
       void docks_init();
-
       QDockWidget *projfiles_dock;
       QDockWidget *tag_tooldock;
       QToolBar *top_toolbar;
