@@ -107,8 +107,8 @@ void GLCanvas::initializeGL()
 void GLCanvas::paintGL()
 {
   // Draw the scene
-  RECT_BUFFER->bind();
   glClear(GL_COLOR_BUFFER_BIT);
+  RECT_BUFFER->bind();
   std::cout << "Clear code:" << glGetError() << std::endl;
   glDrawArrays(GL_TRIANGLES,0,sizeof(float)*6);
   std::cout << "Draw arrays code:" << glGetError() << std::endl;
